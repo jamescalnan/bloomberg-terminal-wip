@@ -2,7 +2,7 @@
 #rich https://rich.readthedocs.io/en/latest/reference/live.html?highlight=live
 #https://rich.readthedocs.io/en/latest/live.html
 #https://github.com/willmcgugan/rich
-import os
+import os, sys
 import requests
 from bs4 import BeautifulSoup
 from rich.console import Console
@@ -10,11 +10,12 @@ from rich.table import Table
 from rich.live import Live
 import time
 
+FILE = sys.argv[1]
+
 console = Console()
 
 table = Table(show_header=True, header_style="bold white")
 
-clear = lambda: os.system('cls')
 
 class stock_info:
     
@@ -83,7 +84,7 @@ class stock_info:
             return temp_comp_name, temp_name.upper(), temp_price, temp_change, temp_pct_change
             
 
-stocks_to_get = open("C:/Users/James Calnan/OneDrive - Trant Engineering Ltd/Desktop/test/web scraper/stocks.txt", "r").read().split("\n")
+stocks_to_get = open(f"C:/Users/James/Desktop/bloomberg/bloomberg-terminal-wip/{FILE}", "r").read().split("\n")
 
 print(stocks_to_get)
 
