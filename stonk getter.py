@@ -1,7 +1,11 @@
 #soup: https://realpython.com/beautiful-soup-web-scraper-python/
 
+import os
 import requests
 from bs4 import BeautifulSoup
+import time
+
+clear = lambda: os.system('cls')
 
 class stock_info:
     
@@ -57,7 +61,7 @@ class stock_info:
             temp_change = str(c) + ' ' * (14 - len(str(c)))
             temp_pct_change = str(pct) + ' ' * (14 - len(str(pct)))
             
-            return temp_comp_name + temp_name + temp_price + temp_change + temp_pct_change
+            return temp_comp_name + temp_name + temp_price + temp_change + temp_pct_change + "\n"
             
         else:
             print("No info available")
@@ -66,14 +70,28 @@ stocks_to_get = open("C:/Users/James Calnan/OneDrive - Trant Engineering Ltd/Des
 
 print(stocks_to_get)
 
+oldtime = time.time()
+
 active = []
 
 for stock in stocks_to_get:
     active.append(stock_info(stock))
 
-print("Company Name                       Stock   Price         Change        % Change")
 
 
-for stock in active:
-    stock.get_stock_info()
-    print(stock.prittify_info())
+while True:
+
+    if time.time() - oldtime > 3:
+        things = []
+        time_take = time.time()
+        print(f"\nGetting data...")
+        for stock in active:
+            stock.get_stock_info()
+            things.append(stock.prittify_info())
+        clear()
+        oldtime = time.time()
+        print("Company Name                       Stock   Price         Change        % Change\n")
+        for thing in things:
+            print(thing)
+        print(f"Gethered in {round(time.time() - time_take)} seconds")
+        
