@@ -50,21 +50,19 @@ class stock_info:
             cn = self.company_name
             n = self.name
             p = self.price
-            c = ('+' if float(self.change) > 0 else '') + '$' + self.change
-            pct = ('+' if float(self.change) > 0 else '') + self.change_pct
+            c = ('+' if float(self.change) > 0 else '-') + '$' + self.change.replace("-", "")
+            pct = ('+' if float(self.change) > 0 else '-') + self.change_pct.replace("-", "")
             
             
             
-            temp_comp_name = cn + ' ' * (35 - len(cn))
+            temp_comp_name = cn + ' ' * (40 - len(cn))
             temp_name = n + ' ' *  (8 - len(n))
             temp_price = str(p) + ' ' * (14 - len(str(p)))
             temp_change = str(c) + ' ' * (14 - len(str(c)))
-            temp_pct_change = str(pct) + ' ' * (14 - len(str(pct)))
+            temp_pct_change = str(pct)# + ' ' * (14 - len(str(pct)))
             
-            return temp_comp_name + temp_name + temp_price + temp_change + temp_pct_change + "\n"
+            return temp_comp_name + "|" + temp_name.upper() + "|" + temp_price + "|" + temp_change + "|" + temp_pct_change + "|"
             
-        else:
-            print("No info available")
 
 stocks_to_get = open("C:/Users/James Calnan/OneDrive - Trant Engineering Ltd/Desktop/test/web scraper/stocks.txt", "r").read().split("\n")
 
@@ -81,17 +79,17 @@ for stock in stocks_to_get:
 
 while True:
 
-    if time.time() - oldtime > 3:
-        things = []
-        time_take = time.time()
-        print(f"\nGetting data...")
-        for stock in active:
-            stock.get_stock_info()
-            things.append(stock.prittify_info())
-        clear()
-        oldtime = time.time()
-        print("Company Name                       Stock   Price         Change        % Change\n")
-        for thing in things:
-            print(thing)
-        print(f"Gethered in {round(time.time() - time_take)} seconds")
+    #if time.time() - oldtime > 3:
+    things = []
+    time_take = time.time()
+    print(f"\nGetting data...")
+    for stock in active:
+        stock.get_stock_info()
+        things.append(stock.prittify_info())
+    clear()
+    oldtime = time.time()
+    print("Company Name                            Stock    Price          Change         % Change\n" + "\n" + "-" * 87)
+    for thing in things:
+        print(f"{thing}" + "\n" + "-" * 87)
+    print(f"Gathered in {round(time.time() - time_take)} seconds")
         
