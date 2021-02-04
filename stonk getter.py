@@ -1,9 +1,18 @@
 #soup: https://realpython.com/beautiful-soup-web-scraper-python/
-
+#rich https://rich.readthedocs.io/en/latest/reference/live.html?highlight=live
+#https://rich.readthedocs.io/en/latest/live.html
+#https://github.com/willmcgugan/rich
 import os
 import requests
 from bs4 import BeautifulSoup
+from rich.console import Console
+from rich.table import Table
+from rich.live import Live
 import time
+
+console = Console()
+
+table = Table(show_header=True, header_style="bold white")
 
 clear = lambda: os.system('cls')
 
@@ -51,17 +60,27 @@ class stock_info:
             n = self.name
             p = self.price
             c = ('+' if float(self.change) > 0 else '-') + '$' + self.change.replace("-", "")
-            pct = ('+' if float(self.change) > 0 else '-') + self.change_pct.replace("-", "")
+            pct = ('+' if float(self.change_pct.replace("%", "")) > 0 else '-') + self.change_pct.replace("-", "")
+            #[bold magenta]World[/bold magenta]
             
             
-            
-            temp_comp_name = cn + ' ' * (40 - len(cn))
-            temp_name = n + ' ' *  (8 - len(n))
-            temp_price = str(p) + ' ' * (14 - len(str(p)))
-            temp_change = str(c) + ' ' * (14 - len(str(c)))
+            temp_comp_name = "[bold]" +cn+ "[/bold]"# + ' ' * (40 - len(cn))
+            temp_name = n# + ' ' *  (8 - len(n))
+            temp_price = str(p)# + ' ' * (14 - len(str(p)))
+            temp_change = str(c)# + ' ' * (14 - len(str(c)))
             temp_pct_change = str(pct)# + ' ' * (14 - len(str(pct)))
             
-            return temp_comp_name + "|" + temp_name.upper() + "|" + temp_price + "|" + temp_change + "|" + temp_pct_change + "|"
+            if float(self.change) > 0:
+                temp_change = f"[bold green]{temp_change}[/bold green]"
+            else:
+                temp_change = f"[bold red]{temp_change}[/bold red]"
+            
+            if float(self.change_pct.replace("%", "")) > 0:
+                temp_pct_change = f"[bold green]{temp_pct_change}[/bold green]"
+            else:
+                temp_pct_change = f"[bold red]{temp_pct_change}[/bold red]"
+            
+            return temp_comp_name, temp_name.upper(), temp_price, temp_change, temp_pct_change
             
 
 stocks_to_get = open("C:/Users/James Calnan/OneDrive - Trant Engineering Ltd/Desktop/test/web scraper/stocks.txt", "r").read().split("\n")
@@ -75,21 +94,29 @@ active = []
 for stock in stocks_to_get:
     active.append(stock_info(stock))
 
+def generate_table() -> Table:
+    table = Table(show_header=True, header_style="bold white")
 
-
-while True:
-
-    #if time.time() - oldtime > 3:
-    things = []
-    time_take = time.time()
-    print(f"\nGetting data...")
+    table.add_column("Company name", style="dim")
+    table.add_column("Stock")
+    table.add_column("Price")
+    table.add_column("Change")
+    table.add_column("% Change")
+    
     for stock in active:
         stock.get_stock_info()
-        things.append(stock.prittify_info())
-    clear()
-    oldtime = time.time()
-    print("Company Name                            Stock    Price          Change         % Change\n" + "\n" + "-" * 87)
-    for thing in things:
-        print(f"{thing}" + "\n" + "-" * 87)
-    print(f"Gathered in {round(time.time() - time_take)} seconds")
-        
+        cn, n, p, c, pct = stock.prittify_info()
+        table.add_row(cn, n, p, c, pct)
+    
+    return table
+    
+old_table = None
+
+with Live(auto_refresh=False, vertical_overflow="ellipsis") as live:
+    while True:
+        new_table = generate_table()#for _ in range(12):
+        if old_table != new_table:
+            live.update(new_table)
+            live.refresh()
+            old_table = new_table
+            
