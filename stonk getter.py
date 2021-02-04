@@ -64,29 +64,34 @@ class stock_info:
             pct = ('+' if float(self.change_pct.replace("%", "")) > 0 else '-') + self.change_pct.replace("-", "")
             #[bold magenta]World[/bold magenta]
             
-            
-            temp_comp_name = "[bold]" +cn+ "[/bold]"# + ' ' * (40 - len(cn))
-            temp_name = n# + ' ' *  (8 - len(n))
-            temp_price = str(p)# + ' ' * (14 - len(str(p)))
-            temp_change = str(c)# + ' ' * (14 - len(str(c)))
-            temp_pct_change = str(pct)# + ' ' * (14 - len(str(pct)))
+            temp_comp_name = cn
+            temp_name = n.upper()
+            temp_price = str(p)
+            temp_change = str(c)
+            temp_pct_change = str(pct)
             
             if float(self.change) > 0:
                 temp_change = f"[bold green]{temp_change}[/bold green]"
+            elif float(self.change) == 0:
+                temp_change = f"[bold grey]{temp_change.replace('-', '').replace('+', '')}[/bold grey]"
             else:
                 temp_change = f"[bold red]{temp_change}[/bold red]"
             
             if float(self.change_pct.replace("%", "")) > 0:
                 temp_pct_change = f"[bold green]{temp_pct_change}[/bold green]"
+            elif float(self.change_pct.replace("%", "")) == 0:
+                temp_pct_change = f"[bold grey]{temp_pct_change.replace('-', '').replace('+', '')}[/bold grey]"
+                
             else:
                 temp_pct_change = f"[bold red]{temp_pct_change}[/bold red]"
             
-            return temp_comp_name, temp_name.upper(), temp_price, temp_change, temp_pct_change
+            return temp_comp_name, temp_name, temp_price, temp_change, temp_pct_change
+        return None, None, None, None, None
             
 
-stocks_to_get = open(f"C:/Users/James/Desktop/bloomberg/bloomberg-terminal-wip/{FILE}", "r").read().split("\n")
+stocks_to_get = open(f"{FILE}", "r").read().split("\n")
 
-print(stocks_to_get)
+console.print(stocks_to_get)
 
 oldtime = time.time()
 
@@ -94,6 +99,8 @@ active = []
 
 for stock in stocks_to_get:
     active.append(stock_info(stock))
+
+console.clear()
 
 def generate_table() -> Table:
     table = Table(show_header=True, header_style="bold white")
@@ -107,7 +114,8 @@ def generate_table() -> Table:
     for stock in active:
         stock.get_stock_info()
         cn, n, p, c, pct = stock.prittify_info()
-        table.add_row(cn, n, p, c, pct)
+        if p is not None:
+            table.add_row(cn, n, p, c, pct)
     
     return table
     
@@ -121,3 +129,4 @@ with Live(auto_refresh=False, vertical_overflow="ellipsis") as live:
             live.refresh()
             old_table = new_table
             
+
