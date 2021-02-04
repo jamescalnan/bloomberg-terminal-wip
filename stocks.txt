@@ -1,0 +1,12 @@
+amd
+baba
+googl
+amzn
+aapl
+ebay
+xom
+f
+nflx
+pypl
+spot
+tsla
