@@ -19,10 +19,17 @@ if len(sys.argv) < 2:
 else:
     FILE = sys.argv[1]
 
-
-
 table = Table(show_header=True, header_style="bold white")
 
+def change_colour(value, good, bad):
+    if float(value.replace("+", "").replace("-", "").replace("$", "")) == 0:
+        value = f"[bold grey]{value.replace('-', '').replace('+', '')}[/bold grey]"
+    elif float(value.replace("+", "").replace("-", "").replace("$", "")) > good and float(value.replace("+", "").replace("-", "").replace("$", "")) < bad:
+        value = f"[bold green]{value}[/bold green]"
+    else:
+        value = f"[red]{value}[/red]"
+
+    return value
 
 class stock_info:
     
@@ -65,17 +72,17 @@ class stock_info:
             self.volume = str(thing.find('span', class_="primary").text).replace("\n", "").split("Volume: ")[-1].strip()
             self.avg_volume = str(thing.find('span', class_="secondary").text).split("Avg: ")[-1].strip()
         
-        self.pe = str(soup.find_all('li', class_="kv__item")).split('<li class="kv__item">')[9].split("</span>")[0].split(">")[-1]
+        try:            
+            self.pe = str(soup.find_all('li', class_="kv__item")).split('<li class="kv__item">')[9].split("</span>")[0].split(">")[-1]
+        except:
+            self.pe = "[red]error[/red]"
         
-        self.market_cap = str(soup.find_all('li', class_="kv__item")).split('<li class="kv__item">')[4].split("</span>")[0].split(">")[-1]
+        try:
+            self.market_cap = str(soup.find_all('li', class_="kv__item")).split('<li class="kv__item">')[4].split("</span>")[0].split(">")[-1]
+        except:
+            self.market_cap = "[red]error[/red]"
         
         #return price_html, price, change, change_pct
-
-    def return_stock_info(self):
-        if self.price is not None:
-            return self.company_name, self.name, self.price, ('+' if float(self.change) > 0 else '') + '$' + self.change, ('+' if float(self.change) > 0 else '') + self.change_pct
-        else:
-            return None
 
     def prittify_info(self, data):
         self.get_stock_info()
@@ -86,7 +93,6 @@ class stock_info:
             p = self.price.translate({ord(c): None for c in string.whitespace})
             c = ('+' if float(self.change) > 0 else '-') + '$' + self.change.replace("-", "")
             pct = ('+' if float(self.change_pct.replace("%", "")) > 0 else '-') + self.change_pct.replace("-", "")
-            #[bold magenta]World[/bold magenta]
             
             temp_comp_name = f"[bright_white]{cn}"
             temp_name = n.upper()
@@ -100,13 +106,8 @@ class stock_info:
             
             market_cap = self.market_cap
             
-            if temp_pe != "N/A":
-                if float(temp_pe) > 50:
-                    temp_pe = f"[red]{temp_pe}[/red]"
-                elif float(temp_pe) == 0:
-                    temp_pe = f"[grey]{temp_pe}[/grey]"
-                else:
-                    temp_pe = f"[bold green]{temp_pe}[/bold green]"
+            if temp_pe != "N/A" and "error" not in temp_pe:
+                temp_pe = change_colour(temp_pe, 0, 50)
             
             if float(self.change) > 0:
                 temp_change = f"[bold green]{temp_change}[/bold green]"
@@ -115,8 +116,6 @@ class stock_info:
             else:
                 temp_change = f"[red]{temp_change}[/red]"
             
-            
-           
             if float(self.change_pct.replace("%", "")) > 0:
                 temp_pct_change = f"[bold green]{temp_pct_change}[/bold green]"
             elif float(self.change_pct.replace("%", "")) == 0:
@@ -127,9 +126,19 @@ class stock_info:
             if "T" in market_cap:
                 market_cap = f"[pale_green1]{market_cap}[/pale_green1]"
                 
+            data.append((temp_comp_name,
+                         temp_name,
+                         temp_price,
+                         temp_change,
+                         temp_pct_change,
+                         temp_vol,
+                         temp_avg_vol,
+                         temp_pe,
+                         market_cap,
+                         f"[cyan]{self.status}[/cyan]"))
             
-            data.append((temp_comp_name, temp_name, temp_price, temp_change, temp_pct_change, temp_vol, temp_avg_vol, temp_pe, market_cap, f"[cyan]{self.status}[/cyan]"))
-            return data#temp_comp_name, temp_name, temp_price, temp_change, temp_pct_change, f"[cyan]{self.status}[/cyan]"
+            return data
+        
         return None, None, None, None, None, None, None, None, None
             
 
@@ -137,10 +146,6 @@ if FILE == None:
     stocks_to_get = user_input.translate({ord(c): None for c in string.whitespace}).split(",")
 else:
     stocks_to_get = open(FILE, "r").read().split("\n")
-
-console.print(stocks_to_get)
-
-oldtime = time.time()
 
 active = []
 
@@ -163,7 +168,7 @@ def generate_table() -> Table:
 
     table.border_style = "grey66"
 
-    table.add_column("Ticker", style="dim")
+    table.add_column("Company name", style="dim")
     #table.add_column("Stock")
     table.add_column("Price")
     table.add_column("Change")
@@ -183,13 +188,7 @@ def generate_table() -> Table:
     
     return table
 
-
 old_table = None
-
-oldtime = time.time()
-
-times = []
-
 
 with Live(auto_refresh=False, vertical_overflow="ellipsis") as live:
     while True:
@@ -198,5 +197,3 @@ with Live(auto_refresh=False, vertical_overflow="ellipsis") as live:
             live.update(new_table)
             live.refresh()
             old_table = new_table
-            
-            
