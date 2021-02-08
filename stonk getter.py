@@ -54,10 +54,7 @@ class stock_info:
 
     def get_stock_info(self):
         URL = f'https://www.marketwatch.com/investing/stock/{self.name.lower()}?mod=over_search'
-        try:
-            page = requests.get(URL)
-        except:
-            page = requests.get(f'https://www.marketwatch.com/investing/fund/{self.name.lower()}?mod=over_search')
+        page = requests.get(URL)
 
         soup = BeautifulSoup(page.content, 'html5lib')
 
@@ -176,6 +173,35 @@ def multi_get_data(active, data, workers=20):
 
     return data
 
+def remove_colours(value):
+    
+    return float(value.replace("[bold green]", "").replace("[/bold green]", "").replace("[/red]", "").replace("[red]", "").replace("[bold grey]", "").replace("[/bold grey]", "")[:-1])
+
+
+def sort_data(active_stocks):
+    
+    #assign each thing a key then sort according to
+    # index point 6
+    
+    full_values = {}
+    
+    just_pct = {}
+    
+    for i, value in enumerate(active_stocks):
+        full_values[i] = value
+        just_pct[i] = remove_colours(value[4])
+        
+    
+    elements_byvalues = {key: just_pct[key] for key in sorted(just_pct, key=just_pct.get, reverse=True)}
+    
+    
+    sorted_values = []
+    
+    for k, v in elements_byvalues.items():
+        sorted_values.append(full_values[k])
+    
+    return sorted_values
+
 
 def generate_table() -> Table:
     table = Table(show_header=True, header_style="bold white", show_lines=True)
@@ -197,6 +223,9 @@ def generate_table() -> Table:
 
     values = []
     values = multi_get_data(active, values)
+    
+    values = sort_data(values)
+    
 
     for value in values:
         cn, n, p, c, pct, v, avg, pe, mc, s = value
