@@ -156,15 +156,16 @@ if FILE is None:
     stocks_to_get = user_input.translate(
         {ord(c): None for c in string.whitespace}).split(",")
 else:
-    stocks_to_get = open(FILE, "r").read().split("\n")
+    stocks_to_get = [x.upper() for x in open(FILE, "r").read().split("\n")]
 
 active = []
 
 for stock in stocks_to_get:
-    active.append(stock_info(stock))
+    active.append(stock_info(stock.lower()))
 
 console.clear()
 
+console.print(f"getting data for {stocks_to_get}")
 
 def multi_get_data(active, data, workers=20):
 
@@ -223,9 +224,7 @@ def generate_table() -> Table:
 
     values = []
     values = multi_get_data(active, values)
-    
     values = sort_data(values)
-    
 
     for value in values:
         cn, n, p, c, pct, v, avg, pe, mc, s = value
@@ -235,11 +234,20 @@ def generate_table() -> Table:
 
 
 old_table = None
+first = 0
 
-with Live(auto_refresh=False, vertical_overflow="ellipsis") as live:
-    while True:
-        new_table = generate_table()
-        if old_table != new_table:
-            live.update(new_table)
-            live.refresh()
-            old_table = new_table
+try:
+    with Live(auto_refresh=False, vertical_overflow="ellipsis") as live:
+        while True:
+            new_table = generate_table()
+            if old_table != new_table:
+                if first == 0:
+                    console.clear()
+                    first = 1
+                live.update(new_table)
+                live.refresh()
+                old_table = new_table
+
+except KeyboardInterrupt:
+    console.clear()
+    console.print("[green]Closing...[/green]")
