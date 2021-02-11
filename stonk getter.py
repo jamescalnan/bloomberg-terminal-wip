@@ -4,13 +4,15 @@
 # https://github.com/willmcgugan/rich
 
 from concurrent.futures import ThreadPoolExecutor
-import os, sys, string, time, requests
+import sys, string, requests, ctypes
 from bs4 import BeautifulSoup
 from rich.console import Console
 from rich.table import Table
 from rich.live import Live
 
 console = Console(color_system="256")
+
+TOTAL = None
 
 if len(sys.argv) < 2:
     user_input = input("Stocks to add (seperate with a comma): ")
@@ -63,9 +65,9 @@ class stock_info:
         for thing in price_html:
             self.price = str(thing.find('h3', class_="intraday__price").text).replace("\n", "").strip()
             self.change = str(thing.find('span', class_="change--point--q").text
-                        ).replace("\n", "")
+                              ).replace("\n", "")
             self.change_pct = str(thing.find('span', class_="change--percent--q").text
-                                    ).replace("\n", "")
+                                  ).replace("\n", "")
 
         for thing in soup.find_all('div', class_="element element--company"):
             self.company_name = thing.find('h1', class_="company__name").text
@@ -83,7 +85,7 @@ class stock_info:
             self.avg_volume = str(thing.find('span', class_="secondary").text
                                   ).split("Avg: ")[-1].strip()
 
-        try:            
+        try:
             self.pe = str(soup.find_all('li', class_="kv__item")).split('<li class="kv__item">')[9].split("</span>")[0].split(">")[-1]
         except:
             self.pe = "[red]error[/red]"
@@ -94,7 +96,7 @@ class stock_info:
         except:
             self.market_cap = "[red]error[/red]"
 
-    def prittify_info(self, data):
+    def prittify_info(self, data, first=False):
         self.get_stock_info()
         if self.price is not None:
 
@@ -148,6 +150,11 @@ class stock_info:
                          temp_pe,
                          market_cap,
                          f"[cyan]{self.status}[/cyan]"))
+
+            if first:
+                console.show_cursor(False)
+                console.print(f"({len(data)}/{TOTAL}) Downloaded data for [green]{temp_name}         ", end="\r")
+
             return data
         return None, None, None, None, None, None, None, None, None
 
@@ -157,6 +164,7 @@ if FILE is None:
         {ord(c): None for c in string.whitespace}).split(",")
 else:
     stocks_to_get = [x.upper() for x in open(FILE, "r").read().split("\n")]
+    ctypes.windll.kernel32.SetConsoleTitleW(f"{FILE[2:][:-4]} terminal")
 
 active = []
 
@@ -167,48 +175,40 @@ console.clear()
 
 console.print(f"getting data for {stocks_to_get}")
 
-def multi_get_data(active, data, workers=20):
+TOTAL = len(stocks_to_get)
 
+
+def multi_get_data(active, data, first, workers=20):
     with ThreadPoolExecutor(max_workers=workers) as executor:
-        [executor.submit(v.prittify_info(data)) for v in active]
+        [executor.submit(v.prittify_info(data, first)) for v in active]
 
     return data
 
+
 def remove_colours(value):
-    
     return float(value.replace("[bold green]", "").replace("[/bold green]", "").replace("[/red]", "").replace("[red]", "").replace("[bold grey]", "").replace("[/bold grey]", "")[:-1])
 
 
 def sort_data(active_stocks):
-    
-    #assign each thing a key then sort according to
-    # index point 6
-    
     full_values = {}
-    
     just_pct = {}
-    
+
     for i, value in enumerate(active_stocks):
         full_values[i] = value
         just_pct[i] = remove_colours(value[4])
-        
-    
+
     elements_byvalues = {key: just_pct[key] for key in sorted(just_pct, key=just_pct.get, reverse=True)}
-    
-    
     sorted_values = []
-    
+
     for k, v in elements_byvalues.items():
         sorted_values.append(full_values[k])
-    
+
     return sorted_values
 
 
-def generate_table() -> Table:
+def generate_table(first) -> Table:
     table = Table(show_header=True, header_style="bold white", show_lines=True)
-
-    table.title = FILE
-
+    # table.title = FILE
     table.border_style = "grey66"
 
     table.add_column("Company name", style="dim")
@@ -223,7 +223,7 @@ def generate_table() -> Table:
     table.add_column("Status")
 
     values = []
-    values = multi_get_data(active, values)
+    values = multi_get_data(active, values, first)
     values = sort_data(values)
 
     for value in values:
@@ -234,19 +234,20 @@ def generate_table() -> Table:
 
 
 old_table = None
-first = 0
+first = True
 
 try:
     with Live(auto_refresh=False, vertical_overflow="ellipsis") as live:
         while True:
-            new_table = generate_table()
+            new_table = generate_table(first)
             if old_table != new_table:
-                if first == 0:
+                if first:
                     console.clear()
-                    first = 1
+                    first = False
                 live.update(new_table)
                 live.refresh()
                 old_table = new_table
+                console.show_cursor(False)
 
 except KeyboardInterrupt:
     console.clear()
