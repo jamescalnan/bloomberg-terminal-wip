@@ -1,7 +1,5 @@
 # soup: https://realpython.com/beautiful-soup-web-scraper-python/
-# rich https://rich.readthedocs.io/en/latest/reference/live.html?highlight=live
-# https://rich.readthedocs.io/en/latest/live.html
-# https://github.com/willmcgugan/rich
+# rich: https://github.com/willmcgugan/rich
 
 from concurrent.futures import ThreadPoolExecutor
 import sys, string, requests, ctypes
@@ -9,6 +7,7 @@ from bs4 import BeautifulSoup
 from rich.console import Console
 from rich.table import Table
 from rich.live import Live
+from rich import box
 
 console = Console(color_system="256")
 
@@ -23,14 +22,21 @@ else:
 table = Table(show_header=True, header_style="bold white")
 
 
+def multi_replace(input_string: str, replacements: list):
+    for replacement in replacements:
+        input_string = input_string.replace(replacement, "")
+
+    return input_string
+
+
 def change_colour(value, good, bad):
     if "/" in value:
         return "N/A"
-    if float(value.replace("+", "").replace("-", "").replace("$", "")) == 0:
-        value = f"[bold grey]{value.replace('-', '').replace('+', '')}[/bold grey]"
-    elif (float(value.replace("+", "").replace("-", "").replace("$", ""))
+    if float(multi_replace(value, ["+", "-", "$"])) == 0:
+        value = f"[bold grey]{multi_replace(value, ['+', '-'])}[/bold grey]"
+    elif (float(multi_replace(value, ["+", "-", "$"]))
           > good and
-          float(value.replace("+", "").replace("-", "").replace("$", ""))
+          float(multi_replace(value, ["+", "-", "$"]))
           < bad):
         value = f"[bold green]{value}[/bold green]"
     else:
@@ -43,7 +49,6 @@ class stock_info:
 
     def __init__(self, name):
         self.name = name
-
         self.status = None
         self.company_name = None
         self.price = None
@@ -56,7 +61,11 @@ class stock_info:
 
     def get_stock_info(self):
         URL = f'https://www.marketwatch.com/investing/stock/{self.name.lower()}?mod=over_search'
-        page = requests.get(URL)
+        
+        try:
+            page = requests.get(URL)
+        except ConnectionError:
+            return
 
         soup = BeautifulSoup(page.content, 'html5lib')
 
@@ -126,14 +135,14 @@ class stock_info:
             if float(self.change) > 0:
                 temp_change = f"[bold green]{temp_change}[/bold green]"
             elif float(self.change) == 0:
-                temp_change = f"[bold grey]{(temp_change.replace('-', '')).replace('+', '')}[/bold grey]"
+                temp_change = f"[bold grey]{multi_replace(temp_change, ['+', '-'])}[/bold grey]"
             else:
                 temp_change = f"[red]{temp_change}[/red]"
 
             if float(self.change_pct.replace("%", "")) > 0:
                 temp_pct_change = f"[bold green]{temp_pct_change}[/bold green]"
             elif float(self.change_pct.replace("%", "")) == 0:
-                temp_pct_change = f"[bold grey]{temp_pct_change.replace('-', '').replace('+', '')}[/bold grey]"
+                temp_pct_change = f"[bold grey]{multi_replace(temp_pct_change, ['+', '-'])}[/bold grey]"
             else:
                 temp_pct_change = f"[red]{temp_pct_change}[/red]"
 
@@ -164,10 +173,13 @@ if FILE is None:
         {ord(c): None for c in string.whitespace}).split(",")
 else:
     stocks_to_get = [x.upper() for x in open(FILE, "r").read().split("\n")]
+
+    powershell_name = multi_replace(FILE, [".\\", ".txt"])
     
-    powershell_name = FILE.replace(".\\", "").replace(".txt", "") 
-    
-    ctypes.windll.kernel32.SetConsoleTitleW(f"{powershell_name} terminal")
+    try:
+        ctypes.windll.kernel32.SetConsoleTitleW(f"{powershell_name} terminal")
+    except AttributeError:
+        print("Couldn't rename")
 
 active = []
 
@@ -175,13 +187,12 @@ for stock in stocks_to_get:
     active.append(stock_info(stock.lower()))
 
 console.clear()
-
 console.print(f"getting data for {stocks_to_get}")
 
 TOTAL = len(stocks_to_get)
 
 
-def multi_get_data(active, data, first, workers=20):
+def multi_get_data(active, data, first, workers=20) -> list:
     with ThreadPoolExecutor(max_workers=workers) as executor:
         [executor.submit(v.prittify_info(data, first)) for v in active]
 
@@ -189,10 +200,15 @@ def multi_get_data(active, data, first, workers=20):
 
 
 def remove_colours(value):
-    return float(value.replace("[bold green]", "").replace("[/bold green]", "").replace("[/red]", "").replace("[red]", "").replace("[bold grey]", "").replace("[/bold grey]", "")[:-1])
+    return float(multi_replace(value, ["[bold green]",
+                                       "[/bold green]",
+                                       "[/red]",
+                                       "[red]",
+                                       "[bold grey]",
+                                       "[/bold grey]"])[:-1])
 
 
-def sort_data(active_stocks):
+def sort_data(active_stocks) -> list:
     full_values = {}
     just_pct = {}
 
@@ -200,7 +216,9 @@ def sort_data(active_stocks):
         full_values[i] = value
         just_pct[i] = remove_colours(value[4])
 
-    elements_byvalues = {key: just_pct[key] for key in sorted(just_pct, key=just_pct.get, reverse=True)}
+    elements_byvalues = {key: just_pct[key] for key in sorted(just_pct,
+                                                              key=just_pct.get,
+                                                              reverse=True)}
     sorted_values = []
 
     for k, v in elements_byvalues.items():
@@ -210,24 +228,24 @@ def sort_data(active_stocks):
 
 
 def generate_table(first) -> Table:
-    table = Table(show_header=True, header_style="bold white", show_lines=True)
-    # table.title = FILE
+    table = Table("Company name",
+                  "Price",
+                  "Change",
+                  "% Change",
+                  "Volume",
+                  "Avg Volume",
+                  "P/E Ratio",
+                  "Market Cap",
+                  "Status",
+                  show_header=True,
+                  header_style="bold white",
+                  show_lines=True,
+                  box=box.SIMPLE_HEAVY)
+
     table.border_style = "grey66"
 
-    table.add_column("Company name", style="dim")
-    # table.add_column("Stock")
-    table.add_column("Price")
-    table.add_column("Change")
-    table.add_column("% Change")
-    table.add_column("Volume")
-    table.add_column("Avg Volume")
-    table.add_column("P/E Ratio")
-    table.add_column("Market Cap")
-    table.add_column("Status")
-
     values = []
-    values = multi_get_data(active, values, first)
-    values = sort_data(values)
+    values = sort_data(multi_get_data(active, values, first))
 
     for value in values:
         cn, n, p, c, pct, v, avg, pe, mc, s = value
