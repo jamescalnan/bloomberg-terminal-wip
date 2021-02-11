@@ -164,7 +164,10 @@ if FILE is None:
         {ord(c): None for c in string.whitespace}).split(",")
 else:
     stocks_to_get = [x.upper() for x in open(FILE, "r").read().split("\n")]
-    ctypes.windll.kernel32.SetConsoleTitleW(f"{FILE[2:][:-4]} terminal")
+    
+    powershell_name = FILE.replace(".\\", "").replace(".txt", "") 
+    
+    ctypes.windll.kernel32.SetConsoleTitleW(f"{powershell_name} terminal")
 
 active = []
 
