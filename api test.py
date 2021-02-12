@@ -10,6 +10,7 @@ TEST_API = "sandbox_c0j6pff48v6tlon08mfg"
 
 console = Console()
 
+pct_change = lambda x, y: abs(round(100 - (x / y) * 100, 2))
 
 def key(input_key: str):
     return {"c":  "Current price",
@@ -19,7 +20,7 @@ def key(input_key: str):
             "pc": "Previous close"}[input_key]
 
 
-def to_dictionary(li: list) -> dict:
+def to_dictionary(li: list) -> list:
     return {x: None for x in li}
 
 
@@ -48,12 +49,14 @@ def clean_data(data: dict) -> dict:
 
 
 def calculate_pct(current_price: float, open_price: float):
+    
+
     if current_price == open_price:
         return "[grey]0%"
     elif current_price > open_price:
-        return f"[green]+{abs(round(100 - (current_price / open_price) * 100, 2))}%"
+        return f"[green]+{pct_change(current_price, open_price)}%"
     else:
-        return f"[red]-{abs(round(100 - (current_price / open_price) * 100, 2))}%"
+        return f"[red]-{pct_change(current_price, open_price)}%"
 
 
 def generate_table(stg: dict) -> Table:
