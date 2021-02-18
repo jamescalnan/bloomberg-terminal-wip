@@ -1,8 +1,11 @@
 # soup: https://realpython.com/beautiful-soup-web-scraper-python/
 # rich: https://github.com/willmcgugan/rich
-
+import sys
+import string
+import requests
+import ctypes
+import time
 from concurrent.futures import ThreadPoolExecutor
-import sys, string, requests, ctypes
 from bs4 import BeautifulSoup
 from rich.console import Console
 from rich.table import Table
@@ -108,6 +111,8 @@ class stock_info:
     def prittify_info(self, data, first=False):
         self.get_stock_info()
         if self.price is not None:
+            
+            time_taken = time.time()
 
             cn = self.company_name
             n = self.name
@@ -162,7 +167,8 @@ class stock_info:
 
             if first:
                 console.show_cursor(False)
-                console.print(f"({len(data)}/{TOTAL}) Downloaded data for [green]{temp_name}         ", end="\r")
+                total_time = time.time() - time_taken
+                console.print(f"({len(data)}/{TOTAL}) Downloaded data for [green]{temp_name}          ", end="\r")
 
             return data
         return None, None, None, None, None, None, None, None, None
@@ -190,6 +196,7 @@ console.clear()
 console.print(f"getting data for {stocks_to_get}")
 
 TOTAL = len(stocks_to_get)
+
 
 
 def multi_get_data(active, data, first, workers=20) -> list:
@@ -247,9 +254,30 @@ def generate_table(first) -> Table:
     values = []
     values = sort_data(multi_get_data(active, values, first))
 
+    avg_val = []
+
     for value in values:
         cn, n, p, c, pct, v, avg, pe, mc, s = value
+
+        removed_colours = remove_colours(pct)
+        removed_symbol = str(removed_colours).replace("%", "")
+        avg_val.append(float(removed_symbol))
+
         table.add_row(cn, p, c, pct, v, avg, pe, mc, s)
+
+    average_pct = str(round(sum(avg_val) / len(avg_val), 3))
+
+    if round(sum(avg_val) / len(avg_val), 3) == 0:
+        average_pct = "[white]" + average_pct + "%"
+    elif round(sum(avg_val) / len(avg_val), 3) < 0:
+        average_pct = "[red]" + average_pct + "%"
+    elif round(sum(avg_val) / len(avg_val), 3) > 0:
+        average_pct = "[green]" + "+" + average_pct + "%"
+
+    table.add_row("Average % Change",
+                  None, None,
+                  average_pct,
+                  None, None, None, None, None)
 
     return table
 
