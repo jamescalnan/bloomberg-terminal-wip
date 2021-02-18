@@ -274,6 +274,8 @@ def generate_table(first) -> Table:
     elif round(sum(avg_val) / len(avg_val), 3) > 0:
         average_pct = "[green]" + "+" + average_pct + "%"
 
+    table.add_row(None)
+
     table.add_row("Average % Change",
                   None, None,
                   average_pct,
