@@ -4,7 +4,6 @@ import sys
 import string
 import requests
 import ctypes
-import time
 from concurrent.futures import ThreadPoolExecutor
 from bs4 import BeautifulSoup
 from rich.console import Console
@@ -64,7 +63,7 @@ class stock_info:
 
     def get_stock_info(self):
         URL = f'https://www.marketwatch.com/investing/stock/{self.name.lower()}?mod=over_search'
-        
+
         try:
             page = requests.get(URL)
         except ConnectionError:
@@ -72,47 +71,53 @@ class stock_info:
 
         soup = BeautifulSoup(page.content, 'html5lib')
 
-        price_html = (soup.find_all('div', class_="intraday__data"))
-
-        for thing in price_html:
-            self.price = str(thing.find('h3', class_="intraday__price").text).replace("\n", "").strip()
-            self.change = str(thing.find('span', class_="change--point--q").text
-                              ).replace("\n", "")
-            self.change_pct = str(thing.find('span', class_="change--percent--q").text
-                                  ).replace("\n", "")
+        self.get_price(soup)
 
         for thing in soup.find_all('div', class_="element element--company"):
             self.company_name = thing.find('h1', class_="company__name").text
 
+        self.get_status(soup)
+
+        self.get_volume(soup)
+
+        self.pe = self.extra_info(soup, 9)
+        self.market_cap = self.extra_info(soup, 4)
+
+    def get_status(self, soup):
         for thing in soup.find_all('div', class_="element element--intraday"):
             self.status = str(thing.find('div', class_="status").text
                               ).replace("\n", "")
 
+    def extra_info(self, soup, i):
+        try:
+            return str(soup.find_all('li', class_="kv__item")
+                       ).split('<li class="kv__item">'
+                               )[i].split("</span>")[0].split(">")[-1]
+        except:
+            return "[red]error[/red]"
+
+    def get_price(self, soup):
+        for thing in soup.find_all('div', class_="intraday__data"):
+            self.price = str(thing.find('h3', class_="intraday__price").text
+                             ).replace("\n", "").strip()
+            self.change = str(thing.find('span', class_="change--point--q"
+                                         ).text
+                              ).replace("\n", "")
+            self.change_pct = str(thing.find('span', class_="change--percent--q"
+                                             ).text
+                                  ).replace("\n", "")
+
+    def get_volume(self, soup):
         for thing in soup.find_all('div',
                                    class_="column column--full supportive-data"):
-
             self.volume = str(thing.find('span', class_="primary").text
                               ).replace("\n", "").split("Volume: ")[-1].strip()
-
             self.avg_volume = str(thing.find('span', class_="secondary").text
                                   ).split("Avg: ")[-1].strip()
-
-        try:
-            self.pe = str(soup.find_all('li', class_="kv__item")).split('<li class="kv__item">')[9].split("</span>")[0].split(">")[-1]
-        except:
-            self.pe = "[red]error[/red]"
-
-        try:
-            self.market_cap = (str(soup.find_all('li', class_="kv__item")
-                                   ).split('<li class="kv__item">')[4].split("</span>")[0].split(">")[-1])
-        except:
-            self.market_cap = "[red]error[/red]"
 
     def prittify_info(self, data, first=False):
         self.get_stock_info()
         if self.price is not None:
-            
-            time_taken = time.time()
 
             cn = self.company_name
             n = self.name
@@ -167,7 +172,6 @@ class stock_info:
 
             if first:
                 console.show_cursor(False)
-                total_time = time.time() - time_taken
                 console.print(f"({len(data)}/{TOTAL}) Downloaded data for [green]{temp_name}          ", end="\r")
 
             return data
@@ -181,7 +185,7 @@ else:
     stocks_to_get = [x.upper() for x in open(FILE, "r").read().split("\n")]
 
     powershell_name = multi_replace(FILE, [".\\", ".txt"])
-    
+
     try:
         ctypes.windll.kernel32.SetConsoleTitleW(f"{powershell_name} terminal")
     except AttributeError:
@@ -192,11 +196,12 @@ active = []
 for stock in stocks_to_get:
     active.append(stock_info(stock.lower()))
 
+active = list(set(active))
+
 console.clear()
 console.print(f"getting data for {stocks_to_get}")
 
 TOTAL = len(stocks_to_get)
-
 
 
 def multi_get_data(active, data, first, workers=20) -> list:
