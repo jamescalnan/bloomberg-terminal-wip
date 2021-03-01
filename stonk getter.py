@@ -269,7 +269,7 @@ def generate_table(first) -> Table:
         avg_val.append(float(removed_symbol))
 
         table.add_row(cn, p, c, pct, v, avg, pe, mc, s)
-
+    """
     average_pct = str(round(sum(avg_val) / len(avg_val), 3))
 
     if round(sum(avg_val) / len(avg_val), 3) == 0:
@@ -285,7 +285,7 @@ def generate_table(first) -> Table:
                   None, None,
                   average_pct,
                   None, None, None, None, None)
-
+    """
     return table
 
 
@@ -307,4 +307,4 @@ try:
 
 except KeyboardInterrupt:
     console.clear()
-    console.print("[green]Closing...[/green]")
+    console.print("[green]Closing...")
