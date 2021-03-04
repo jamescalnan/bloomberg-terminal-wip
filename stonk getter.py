@@ -15,6 +15,7 @@ console = Console(color_system="256")
 
 TOTAL = None
 
+style = "bold white on blue"
 if len(sys.argv) < 2:
     user_input = input("Stocks to add (seperate with a comma): ")
     FILE = None
@@ -127,17 +128,7 @@ class stock_info:
             pct = (('+' if float(self.change_pct.replace("%", "")) > 0 else '-')
                    + self.change_pct.replace("-", ""))
 
-            temp_comp_name = f"[bright_white]{cn}"
-            temp_name = n.upper()
-            temp_price = str(p)
-            temp_change = str(c)
-            temp_pct_change = str(pct)
-            temp_vol = f"[bright_yellow]{self.volume}[/bright_yellow]"
-            temp_avg_vol = f"[yellow]{self.avg_volume}[/yellow]"
-
-            temp_pe = self.pe.replace(",", "")
-
-            market_cap = self.market_cap
+            temp_comp_name, temp_name, temp_price, temp_change, temp_pct_change, temp_vol, temp_avg_vol, temp_pe, market_cap = self.create_temp(cn, n, p, c, pct)
 
             if temp_pe != "N/A" and "error" not in temp_pe:
                 temp_pe = change_colour(temp_pe, 0, 50)
@@ -177,12 +168,37 @@ class stock_info:
             return data
         return None, None, None, None, None, None, None, None, None
 
+    def create_temp(self, cn, n, p, c, pct):
+        temp_comp_name = f"[bright_white]{cn}"
+        temp_name = n.upper()
+        temp_price = str(p)
+        temp_change = str(c)
+        temp_pct_change = str(pct)
+        temp_vol = f"[bright_yellow]{self.volume}[/bright_yellow]"
+        temp_avg_vol = f"[yellow]{self.avg_volume}[/yellow]"
+        temp_pe = self.pe.replace(",", "")
+        market_cap = self.market_cap
+        return temp_comp_name, temp_name, temp_price, temp_change, temp_pct_change, temp_vol, temp_avg_vol, temp_pe,market_cap
+
+    def __repr__(self) -> str:
+        return self.name
+
 
 if FILE is None:
-    stocks_to_get = user_input.translate(
-        {ord(c): None for c in string.whitespace}).split(",")
+    if ".txt" in user_input:
+        stocks_to_get = [x.upper() for x in open(user_input, "r").read().split("\n")]
+    else:
+        stocks_to_get = user_input.translate(
+            {ord(c): None for c in string.whitespace}).split(",")
 else:
-    stocks_to_get = [x.upper() for x in open(FILE, "r").read().split("\n")]
+    in_file = open(FILE, "r").read()
+    
+    if ", " in in_file:
+        stocks_to_get = [x.upper() for x in in_file.split(", ")]
+    else:
+        stocks_to_get = [x.upper() for x in in_file.split("\n")]
+
+
 
     powershell_name = multi_replace(FILE, [".\\", ".txt"])
 
@@ -192,6 +208,7 @@ else:
         print("Couldn't rename")
 
 active = []
+
 
 for stock in stocks_to_get:
     active.append(stock_info(stock.lower()))
@@ -241,6 +258,7 @@ def sort_data(active_stocks) -> list:
 
 def generate_table(first) -> Table:
     table = Table("Company name",
+                  "Ticker",
                   "Price",
                   "Change",
                   "% Change",
@@ -268,24 +286,25 @@ def generate_table(first) -> Table:
         removed_symbol = str(removed_colours).replace("%", "")
         avg_val.append(float(removed_symbol))
 
-        table.add_row(cn, p, c, pct, v, avg, pe, mc, s)
-    """
-    average_pct = str(round(sum(avg_val) / len(avg_val), 3))
+        table.add_row(cn, n, p, c, pct, v, avg, pe, mc, s)
 
-    if round(sum(avg_val) / len(avg_val), 3) == 0:
-        average_pct = "[white]" + average_pct + "%"
-    elif round(sum(avg_val) / len(avg_val), 3) < 0:
-        average_pct = "[red]" + average_pct + "%"
-    elif round(sum(avg_val) / len(avg_val), 3) > 0:
-        average_pct = "[green]" + "+" + average_pct + "%"
+    if len(values) > 5:
+        average_pct = str(round(sum(avg_val) / len(avg_val), 3))
 
-    table.add_row(None)
+        if round(sum(avg_val) / len(avg_val), 3) == 0:
+            average_pct = "[white]" + average_pct + "%"
+        elif round(sum(avg_val) / len(avg_val), 3) < 0:
+            average_pct = "[red]" + average_pct + "%"
+        elif round(sum(avg_val) / len(avg_val), 3) > 0:
+            average_pct = "[green]" + "+" + average_pct + "%"
 
-    table.add_row("Average % Change",
-                  None, None,
-                  average_pct,
-                  None, None, None, None, None)
-    """
+        table.add_row(None)
+
+        table.add_row("Average % Change",
+                      None, None, None,
+                      average_pct,
+                      None, None, None, None)
+
     return table
 
 
